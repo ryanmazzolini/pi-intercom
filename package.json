@@ -1,0 +1,50 @@
+{
+  "name": "@ryanmazzolini/pi-intercom",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local messaging between Pi sessions on one machine",
+  "keywords": [
+    "pi-package"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "files": [
+    "extensions/**/*.ts",
+    "extensions/**/*.mjs",
+    "!extensions/**/*.test.mjs",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run typecheck && node --test"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryanmazzolini/pi-intercom.git"
+  },
+  "homepage": "https://github.com/ryanmazzolini/pi-intercom#readme",
+  "bugs": {
+    "url": "https://github.com/ryanmazzolini/pi-intercom/issues"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@earendil-works/pi-tui": "0.83.0",
+    "@types/node": "^24.0.0",
+    "typebox": "^1.1.38",
+    "typescript": "^5.9.3"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  }
+}
