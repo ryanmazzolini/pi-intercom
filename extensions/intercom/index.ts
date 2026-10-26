@@ -769,6 +769,7 @@ export default function intercomExtension(pi: ExtensionAPI): void {
 								...(fromSessionId ? { targetSessionId: fromSessionId } : {}),
 								reply: true,
 								completionText: projected.text,
+								completionTruncated: projected.truncated,
 							};
 						});
 						operationViews.set(receipt.operationId, operationMessageView(params.message!, params.attachments));
@@ -934,10 +935,11 @@ export default function intercomExtension(pi: ExtensionAPI): void {
 			const details = {
 				...snapshot,
 				...(result?.targetSessionId ? { targetSessionId: result.targetSessionId } : {}),
+				...(result?.reply ? { replyTruncated: result.completionTruncated === true } : {}),
 				payloadStored: false,
 			};
 			assertCompactRecord(details, "Intercom operation completion");
-			const reply = result?.completionText ? truncateUtf8(result.completionText, 40 * 1024) : "";
+			const reply = result?.completionText ?? "";
 			const requestPreview = requestView
 				? `\n\n${snapshot.kind === "ask" ? "Question" : "Message"} preview:\n${requestView.preview}${requestView.previewTruncated ? "…" : ""}${requestView.attachmentCount > 0 ? `\n${requestView.attachmentCount} attachment(s)` : ""}`
 				: "";

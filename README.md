@@ -30,7 +30,7 @@ Limits:
 
 - Labels only help sessions find each other. They grant nothing, several sessions can share one, and a reload, compaction, tree navigation, or reconnect clears them.
 - Reading a session shows user and assistant messages and whether each tool call succeeded, not thinking, images, or tool output. Only sessions saved to a file can be read.
-- Output to the model is capped at 48 KiB and marked where cut, except replies to questions, which are cut at 40 KiB without a marker.
+- Output to the model is capped at 48 KiB and marked where cut. Replies to questions get 40 KiB, so the question preview fits alongside them.
 
 ## Credit
 

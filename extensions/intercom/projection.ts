@@ -4,6 +4,8 @@ import type { SessionTailSnapshot } from "./session-tail.ts";
 
 /** Pi caps tool output at about 50 KiB. Every model-visible intercom projection stays below it. */
 export const INTERCOM_PROJECTION_MAX_BYTES = 48 * 1024;
+/** Leaves room for the operation header and question preview in the ask completion notification. */
+export const INTERCOM_ASK_REPLY_MAX_BYTES = 40 * 1024;
 /** Enough for authoritative peer ID, timestamp/truncation facts, and one maximum-size outcome label. */
 export const INTERCOM_TAIL_PROJECTION_MIN_BYTES = 4 * 1024;
 export const INTERCOM_TRUNCATION_NOTICE = "\n\n[Intercom projection truncated: peer text, attachments, or self-declared metadata was omitted to stay below 48 KiB of UTF-8 output.]";
@@ -67,20 +69,20 @@ export function truncateUtf8(value: string, maximumBytes: number): string {
 	return result;
 }
 
-function projectSegments(segments: readonly ProjectionSegment[]): TextProjection {
+function projectSegments(segments: readonly ProjectionSegment[], maximumBytes = INTERCOM_PROJECTION_MAX_BYTES): TextProjection {
 	const complete = segments.map((segment) => segment.text).join("");
 	const completeBytes = byteLength(complete);
-	if (completeBytes <= INTERCOM_PROJECTION_MAX_BYTES) {
+	if (completeBytes <= maximumBytes) {
 		return { text: complete, bytes: completeBytes, truncated: false };
 	}
 
 	const requiredBytes = segments.reduce((total, segment) => total + (segment.optional ? 0 : byteLength(segment.text)), 0);
 	const noticeBytes = byteLength(INTERCOM_TRUNCATION_NOTICE);
-	if (requiredBytes + noticeBytes > INTERCOM_PROJECTION_MAX_BYTES) {
+	if (requiredBytes + noticeBytes > maximumBytes) {
 		throw new Error("Required intercom metadata exceeds the model-visible projection bound");
 	}
 
-	let optionalBytes = INTERCOM_PROJECTION_MAX_BYTES - requiredBytes - noticeBytes;
+	let optionalBytes = maximumBytes - requiredBytes - noticeBytes;
 	let optionalStopped = false;
 	let text = "";
 	for (const segment of segments) {
@@ -183,7 +185,7 @@ export function projectInboundEntry(entry: InboxEntry): InboundProjection {
 
 export function projectAskReply(from: SessionInfo, message: Message): InboundProjection {
 	const entry: InboxEntry = { from, message, receivedAt: Date.now(), replyable: false };
-	const projected = projectSegments(peerMessageSegments("**Reply to intercom ask**", from, message, false));
+	const projected = projectSegments(peerMessageSegments("**Reply to intercom ask**", from, message, false), INTERCOM_ASK_REPLY_MAX_BYTES);
 	return { ...projected, details: compactInboundDetails(entry, projected.truncated), view: intercomMessageView(from, message) };
 }
 

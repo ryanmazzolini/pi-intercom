@@ -19,6 +19,7 @@ import intercomExtension, {
 	validateIntercomAction,
 } from "./index.ts";
 import { FrameDecoder, encodeFrame } from "./client.ts";
+import { INTERCOM_TRUNCATION_NOTICE } from "./projection.ts";
 import { connectNew, isolatedIntercom, startOwnedBroker, stopChild, waitEvent, waitFor } from "../../tests/intercom/helpers.mjs";
 
 initTheme("dark");
@@ -1052,8 +1053,21 @@ test("successful tool actions report resolved peer IDs and persist only compact 
 	await peer.send(ownedId, { messageId: "large-reply-message-id", text: "答".repeat(80_000), replyTo: question.id });
 	const completion = await waitFor(() => delivered.find((call) => call[0].customType === "intercom_operation" && /ask reply received/.test(call[0].content)), 2_000);
 	assert.match(completion[0].content, /答/);
+	assert.ok(completion[0].content.endsWith(INTERCOM_TRUNCATION_NOTICE));
+	assert.equal(completion[0].details.replyTruncated, true);
 	assert.equal(JSON.stringify(completion[0].details).includes("答"), false);
 	assert.deepEqual(completion[1], { deliverAs: "followUp", triggerTurn: true });
+
+	// Replies between the 40 KiB ask budget and the 48 KiB projection bound were once cut silently.
+	const midIncoming = waitEvent(peer, "message", (_from, message) => message.expectsReply === true && message.content.text === "mid reply please");
+	const midAsk = await execute({ action: "ask", to: peerSessionId, message: "mid reply please" });
+	const [, midQuestion] = await midIncoming;
+	await peer.send(ownedId, { messageId: "mid-reply-message-id", text: `${"r".repeat(46_000)}reply-end`, replyTo: midQuestion.id });
+	const midCompletion = await waitFor(() => delivered.find((call) => call[0].customType === "intercom_operation" && call[0].details?.operationId === midAsk.details.operationId), 2_000);
+	assert.ok(Buffer.byteLength(midCompletion[0].content, "utf8") <= INTERCOM_PROJECTION_MAX_BYTES);
+	assert.equal(midCompletion[0].content.includes("reply-end"), false);
+	assert.ok(midCompletion[0].content.endsWith(INTERCOM_TRUNCATION_NOTICE));
+	assert.equal(midCompletion[0].details.replyTruncated, true);
 	const receivedAudit = audits.find((audit) => audit.type === "intercom_received");
 	assert.equal(receivedAudit.data.fromSessionId, peerSessionId);
 	assert.equal(receivedAudit.data.payloadStored, false);

@@ -23,6 +23,7 @@ export interface OperationResult {
 	reply?: boolean;
 	/** Ephemeral model-visible completion text; never copied into a snapshot. */
 	completionText?: string;
+	completionTruncated?: boolean;
 }
 
 export const INTERCOM_OPERATION_LIMITS = Object.freeze({
